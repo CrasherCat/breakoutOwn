@@ -10,6 +10,8 @@ let openingText, gameOverText, playerWonText, playerLevelCompleteText, levelText
 let levelnum = 1;
 //T3 Variable to determine if the level has been completed
 let levelCompleted = false;
+//T4 Scoring
+let scoreNum = 0;
 
 // This object contains all the Phaser configurations to load our game
 const config = {
@@ -85,14 +87,14 @@ function create() {
    */
   player = this.physics.add.sprite(
     400, // x position
-    600, // y position
+    570, // y position
     'paddle', // key of image for the sprite
   );
 
   // Let's add the ball
   ball = this.physics.add.sprite(
     400, // x position
-    565, // y position
+    545, // y position
     'ball' // key of image for the sprite
   );
     
@@ -243,6 +245,17 @@ playerLevelCompleteText.setOrigin(0.5);
 //T3 Make it invisible until the player wins
 playerLevelCompleteText.setVisible(false);
 
+//T4 Score, creating the text
+playerScoreText = this.add.text(
+  this.physics.world.bounds.width - 360,
+  this.physics.world.bounds.height - 60,
+  "Score:" + scoreNum,
+  {
+    fontFamily: 'Monaco, Courier, monospace',
+    fontSize: '50px',
+    fill: '#fff'
+  },
+);
 }
 
 /**
@@ -327,6 +340,8 @@ function isWon() {
  * @param brick - the brick sprite
  */
 function hitBrick(ball, brick) {
+  scoreNum +=50;
+  playerScoreText.setText("Score:" + scoreNum)
   let tween = brick.scene.tweens.addCounter({
     targets: brick,
     from: 1,
