@@ -1,11 +1,15 @@
 //const { Tilemaps } = require("phaser");
 
 // Game objects are global variables so that many functions can access them
-let player, ball, violetBricks, yellowBricks, redBricks, cursors, ball2, pitchConfig;
+let player, ball, violetBricks, yellowBricks, redBricks, cursors;
 // Variable to determine if we started playing
 let gameStarted = false;
 // Add global text objects
-let openingText, gameOverText, playerWonText;
+let openingText, gameOverText, playerWonText, playerLevelCompleteText, levelText;
+//T3 Level varaible for tracking current level
+let levelnum = 1;
+//T3 Variable to determine if the level has been completed
+let levelCompleted = false;
 
 // This object contains all the Phaser configurations to load our game
 const config = {
@@ -60,18 +64,10 @@ const game = new Phaser.Game(config);
  */
 function preload() {
   this.load.image('ball', 'assets/images/ball_32_32.png');
-  this.load.image('ball2', 'assets/images/ball_32_32.png');
   this.load.image('paddle', 'assets/images/paddle_128_32.png');
   this.load.image('brick1', 'assets/images/brick1_64_32.png');
   this.load.image('brick2', 'assets/images/brick2_64_32.png');
   this.load.image('brick3', 'assets/images/brick3_64_32.png');
-  this.load.audio('paddlehit', 'assets/audio/paddlehit.wav');
-  this.load.audio('coin1', 'assets/audio/coin1.wav');
-  this.load.audio('coin2', 'assets/audio/coin2.wav');
-  this.load.audio('coin3', 'assets/audio/coin3.wav');
-  this.load.audio('shake', 'assets/audio/twow.wav');
-  this.sound.unlock();
-
 }
 
 /**
@@ -79,15 +75,7 @@ function preload() {
  * defined here. We also set up our physics rules here
  */
 function create() {
-  pitchConfig = {
-    mute: false,
-    volume: 1,
-    rate: 1,
-    detune: 0,
-    seek: 0,
-    loop: false,
-    delay: 0
-  }
+
   // *** TASK 2 RESTART ON KEYPRESS ***
   keyRestart = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
   /**
@@ -107,45 +95,42 @@ function create() {
     565, // y position
     'ball' // key of image for the sprite
   );
+    
+    // Add violet bricks
+    violetBricks = this.physics.add.group({
+      key: 'brick1',
+      repeat: 0, //T3, 0 while testing, return to 9 after. Repeat for other bricks
+      immovable: true,
+      setXY: {
+        x: 80,
+        y: 140,
+        stepX: 70
+      }
+    });
 
-  // Add violet bricks
-  violetBricks = this.physics.add.group({
-    key: 'brick1',
-    repeat: 9,
-    immovable: true,
-    setXY: {
-      x: 80,
-      y: 140,
-      stepX: 70
-    }
-  });
+    // Add yellow bricks
+    yellowBricks = this.physics.add.group({
+      key: 'brick2',
+      repeat: 0,
+      immovable: true,
+      setXY: {
+        x: 80,
+        y: 90,
+        stepX: 70
+      }
+    });
 
-  // Add yellow bricks
-  yellowBricks = this.physics.add.group({
-    key: 'brick2',
-    repeat: 12,
-    immovable: true,
-    setAngle: 12,
-    setXY: {
-      x: 80,
-      y: 250,
-      stepX: 70
-    }
-  });  
-  
-
-
-  // Add red bricks
-  redBricks = this.physics.add.group({
-    key: 'brick3',
-    repeat: 9,
-    immovable: true,
-    setXY: {
-      x: 80,
-      y: 40,
-      stepX: 70
-    }
-  });
+    // Add red bricks
+    redBricks = this.physics.add.group({
+      key: 'brick3',
+      repeat: 0,
+      immovable: true,
+      setXY: {
+        x: 80,
+        y: 40,
+        stepX: 70
+      }
+    });
 
   // Manage key presses
   cursors = this.input.keyboard.createCursorKeys();
@@ -175,7 +160,20 @@ function create() {
   // Add collision for the player
   this.physics.add.collider(ball, player, hitPlayer, null, this);
 
+ //T3 Create level number text
+  levelText = this.add.text(
+    120,
+    600,
+    'Level:' + levelnum,
+    {
+      fontFamily: 'Monaco, Courier, monospace',
+      fontSize: '50px',
+      fill: '#fff'
+    }
+  )
 
+  levelText.setOrigin(0.5);
+  
   // Create opening text
   openingText = this.add.text(
     this.physics.world.bounds.width / 2,
@@ -211,11 +209,11 @@ function create() {
   // Make it invisible until the player loses
   gameOverText.setVisible(false);
 
-  // Create the game won text
+  // Create the level complete text as 'player won'
   playerWonText = this.add.text(
     this.physics.world.bounds.width / 2,
     this.physics.world.bounds.height / 2,
-    'You won!',
+    'Level Complete',
     {
       fontFamily: 'Monaco, Courier, monospace',
       fontSize: '50px',
@@ -228,6 +226,23 @@ function create() {
   // Make it invisible until the player wins
   playerWonText.setVisible(false);
 
+//T3 Create the next level text
+playerLevelCompleteText = this.add.text(
+  this.physics.world.bounds.width / 2,
+  this.physics.world.bounds.height / 2 + 40,
+  'Press SPACE for next level',
+  {
+    fontFamily: 'Monaco, Courier, monospace',
+    fontSize: '50px',
+    fill: '#fff'
+  },
+);
+
+playerLevelCompleteText.setOrigin(0.5);
+
+//T3 Make it invisible until the player wins
+playerLevelCompleteText.setVisible(false);
+
 }
 
 /**
@@ -237,8 +252,7 @@ function create() {
 function update() {
   // *** TASK 2 RESTART ON KEYPRESS ***
   if(keyRestart.isDown) {
-    RestartScene(this.scene);
-
+    //RestartScene(this.scene);
   }
   // Check if the ball left the scene i.e. game over
   if (isGameOver(this.physics.world)) {
@@ -247,6 +261,15 @@ function update() {
   } else if (isWon()) {
     playerWonText.setVisible(true);
     ball.disableBody(true, true);
+    //T3 multiple levels text and condition for transition.
+    playerLevelCompleteText.setVisible(true);
+    if (cursors.space.isDown){  //T3 - Needs to run once, and actually create the 'next level' now.
+      levelnum +=1
+      levelText.setText("Level:" + levelnum);
+      console.log(levelnum)
+      RestartScene(this.scene);
+
+    }
   } else {
 
     // Put this in so that the player doesn't move if no key is being pressed
@@ -304,27 +327,18 @@ function isWon() {
  * @param brick - the brick sprite
  */
 function hitBrick(ball, brick) {
-  // Brick tween
   let tween = brick.scene.tweens.addCounter({
     targets: brick,
-    from: 10,
+    from: 1,
     to: 0,
     ease: "Sine.easeOut",
-    duration: 275,
-    onUpdate: function(tween){brick.setAngle(tween.getValue() * -65);
-                              brick.scaleX = tween.getValue() * 0.25,
-                              brick.scaleY = tween.getValue() * 0.25},
+    duration: 200,
+    onUpdate: function(tween){brick.setAngle(tween.getValue()); //t3 temp [* -40] put that before )
+                              brick.scaleX = tween.getValue()
+                              brick.scaleY = tween.getValue()},
     onComplete:()=>{brick.disableBody(true, true);}  
   })
-  //Screen shake
   
-  
- 
-
-  ball.scene.cameras.main.shake(400,0.01, true);
-  ball.scene.sound.play('shake');
-  pitchConfig.rate += 0.1;
-  ball.scene.sound.play('coin1', pitchConfig);
 
   if (ball.body.velocity.x == 0) {
     randNum = Math.random();
@@ -346,20 +360,15 @@ function hitBrick(ball, brick) {
  */
 function hitPlayer(ball, player) {
   // Increase the velocity of the ball after it bounces
-  ball.setVelocityY(ball.body.velocity.y - 25);
+  ball.setVelocityY(ball.body.velocity.y - 5);
 
-  let newXVelocity = Math.abs(ball.body.velocity.x) + 25;
+  let newXVelocity = Math.abs(ball.body.velocity.x) + 5;
   // If the ball is to the left of the player, ensure the x velocity is negative
   if (ball.x < player.x) {
     ball.setVelocityX(-newXVelocity);
   } else {
     ball.setVelocityX(newXVelocity);
   }
-
-  console.log("ball:" + ball.x + "player:" + player.x);
-  ball.scene.sound.play('paddlehit');
-  ball.scene.cameras.main.shake(600,0.001, true);
-  ball.scene.sound.play('shake');
 }
 // *** TASK 2 RESTART SCENE ***
 function RestartScene(scene){
